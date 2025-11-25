@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Personal Productivity Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1724; --panel:#0b1220; --muted:#9aa6b2; --card:#0e1622;
+    --accent:#06b6d4; --glass: rgba(255,255,255,0.03);
+    --success:#10b981; --danger:#ef4444;
+  }
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{margin:0;min-height:100vh;background:
+    radial-gradient(800px 400px at 10% 10%, rgba(6,182,212,0.06), transparent),
+    linear-gradient(180deg,#041022 0%, #071226 100%); color:#e6eef8;padding:18px;}
+  .wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:260px 1fr;gap:18px;}
+  .sidebar{background:linear-gradient(180deg,var(--panel), rgba(255,255,255,0.01));padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  .logo{font-weight:700;font-size:18px;display:flex;gap:8px;align-items:center;margin-bottom:12px}
+  .tabs{display:flex;flex-direction:column;gap:8px}
+  .tab{padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .tab.active{background:linear-gradient(90deg, rgba(6,182,212,0.08), rgba(124,58,237,0.04));color:#e6eef8}
+  .content{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);min-height:70vh;overflow:auto}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .search{display:flex;gap:8px;align-items:center}
+  input, select, textarea{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:8px;color:#e6eef8;outline:none}
+  button{background:var(--accent);border:none;padding:8px 12px;border-radius:8px;color:#021124;font-weight:700;cursor:pointer}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .card{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  .muted{color:var(--muted);font-size:13px}
+  .small{font-size:13px;color:var(--muted)}
+  .list{list-style:none;padding:0;margin:0}
+  .list li{display:flex;justify-content:space-between;padding:8px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+  .controls{display:flex;gap:8px;align-items:center}
+  .pill{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:999px;font-size:13px}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+  /* responsive */
+  @media (max-width:900px){
+    .wrap{grid-template-columns:1fr}
+    .grid{grid-template-columns:1fr}
+    .sidebar{order:2}
+  }
+  /* small utility */
+  .danger{color:var(--danger)}
+  .success{color:var(--success)}
+  .hidden{display:none}
+  /* slider */
+  .slider { position:relative;overflow:hidden;border-radius:10px }
+  .slider img{display:block;width:100%;height:220px;object-fit:cover;transition:opacity .6s}
+  .slider .nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:999px;border:none;background:rgba(0,0,0,0.35);color:white;cursor:pointer}
+  .nav.left{left:10px} .nav.right{right:10px}
+  /* stopwatch */
+  .timebig{font-size:34px;font-weight:700}
+  /* quiz */
+  .option{display:block;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);margin-bottom:8px;cursor:pointer}
+  .option.selected{background:linear-gradient(90deg, rgba(6,182,212,0.08), rgba(124,58,237,0.04))}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- SIDEBAR / NAV -->
+  <nav class="sidebar" aria-label="Main navigation">
+    <div class="logo">⚡ Productivity Dashboard</div>
+    <div class="muted" style="margin-bottom:12px">All-in-one practice project — JS, DOM, Fetch, Storage</div>
+    <div class="tabs" id="navTabs">
+      <div class="tab active" data-tab="home">Home</div>
+      <div class="tab" data-tab="todo">To-Do</div>
+      <div class="tab" data-tab="notes">Notes</div>
+      <div class="tab" data-tab="weather">Weather</div>
+      <div class="tab" data-tab="convert">Currency</div>
+      <div class="tab" data-tab="movies">Movies</div>
+      <div class="tab" data-tab="expenses">Expenses</div>
+      <div class="tab" data-tab="timer">Stopwatch</div>
+      <div class="tab" data-tab="slider">Image Slider</div>
+      <div class="tab" data-tab="quiz">Quiz</div>
+    </div>
+
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      <div class="small">Quick actions</div>
+      <div class="controls">
+        <button id="clearAll">Clear All Data</button>
+        <button id="exportData" style="background:#94a3b8">Export</button>
+      </div>
+    </div>
+    <footer>Built for learning • Single file</footer>
+  </nav>
+
+  <!-- CONTENT AREA -->
+  <main class="content" id="mainContent" role="main">
+    <!-- HOME -->
+    <section id="home" class="section">
+      <div class="header">
+        <div>
+          <h2 style="margin:0">Welcome</h2>
+          <div class="muted">This dashboard bundles multiple small apps — click a tab on the left to open a tool.</div>
+        </div>
+        <div class="controls">
+          <div class="pill" id="dateNow"></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3 style="margin-top:0">Quick Summary</h3>
+          <div class="muted">Counts & quick info</div>
+          <ul class="list" style="margin-top:10px">
+            <li>To-Dos <span id="summaryTodos">0</span></li>
+            <li>Notes (chars) <span id="summaryNotes">0</span></li>
+            <li>Expenses total <span id="summaryExpenses">₹0</span></li>
+            <li>Last weather search <span id="summaryWeather">—</span></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0">Mini Tools</h3>
+          <div class="muted">Quick access</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+            <button onclick="showTab('todo')">Open To-Do</button>
+            <button onclick="showTab('notes')">Open Notes</button>
+            <button onclick="showTab('weather')">Open Weather</button>
+            <button onclick="showTab('timer')">Open Stopwatch</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px" class="card">
+        <h3 style="margin-top:0">Tips</h3>
+        <ul>
+          <li class="muted">Everything is client-side, stored in localStorage.</li>
+          <li class="muted">APIs used: Open-Meteo & exchangerate.host & OMDb.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- TODO -->
+    <section id="todo" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">To-Do Manager</h2><div class="muted">Add, complete, delete tasks (saved locally)</div></div>
+        <div class="controls">
+          <input id="todoInput" placeholder="Add new task" />
+          <button id="addTodo">Add</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3 style="margin-top:0">Tasks</h3>
+          <ul id="todoList" class="list"></ul>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-top:0">Filters & stats</h3>
+          <div class="muted">Filter</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button onclick="filterTodos('all')">All</button>
+            <button onclick="filterTodos('active')">Active</button>
+            <button onclick="filterTodos('done')">Done</button>
+          </div>
+          <div style="margin-top:12px">
+            <div>Total: <span id="todoCount">0</span></div>
+            <div>Completed: <span id="todoDone">0</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTES -->
+    <section id="notes" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Notes</h2><div class="muted">Auto-saved note area</div></div>
+        <div class="controls"><button id="clearNote">Clear</button></div>
+      </div>
+
+      <div class="card">
+        <textarea id="noteArea" rows="8" placeholder="Type notes..."></textarea>
+        <div class="small" style="margin-top:8px">Characters: <span id="noteChars">0</span></div>
+      </div>
+    </section>
+
+    <!-- WEATHER -->
+    <section id="weather" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Weather</h2><div class="muted">Search for a city (Open-Meteo)</div></div>
+        <div class="controls"><input id="cityInput" placeholder="e.g., London"/><button id="getWeather">Get</button></div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3 style="margin-top:0">Current</h3>
+          <div id="weatherOut" class="muted">No data yet</div>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Details</h3>
+          <div id="weatherDetails" class="muted">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CURRENCY -->
+    <section id="convert" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Currency Converter</h2><div class="muted">Realtime rates (exchangerate.host)</div></div>
+        <div class="controls">
+          <input id="amount" type="number" placeholder="Amount" style="width:110px" />
+          <select id="fromCur"><option>USD</option><option>INR</option><option>EUR</option><option>GBP</option></select>
+          <select id="toCur"><option>INR</option><option>USD</option><option>EUR</option><option>GBP</option></select>
+          <button id="convertBtn">Convert</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Result</h3>
+        <div id="convOut" class="muted">—</div>
+      </div>
+    </section>
+
+    <!-- MOVIES -->
+    <section id="movies" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Movie Search</h2><div class="muted">OMDb API</div></div>
+        <div class="controls">
+          <input id="movieInput" placeholder="Movie title" />
+          <button id="searchMovie">Search</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="movieOut" class="muted">No search yet</div>
+      </div>
+    </section>
+
+    <!-- EXPENSES -->
+    <section id="expenses" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Expense Tracker</h2><div class="muted">Add items & amounts</div></div>
+        <div class="controls">
+          <input id="expName" placeholder="Item" />
+          <input id="expAmt" type="number" placeholder="Amount" style="width:110px" />
+          <button id="addExp">Add</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3 style="margin-top:0">Expenses</h3>
+          <ul id="expList" class="list"></ul>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">Summary</h3>
+          <div>Total: <span id="expTotal">₹0</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIMER / STOPWATCH -->
+    <section id="timer" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Stopwatch</h2><div class="muted">Start, stop, reset, laps</div></div>
+        <div class="controls"></div>
+      </div>
+
+      <div class="card center">
+        <div class="timebig" id="clock">00:00:00</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="startClock">Start</button>
+          <button id="stopClock">Stop</button>
+          <button id="resetClock" style="background:#94a3b8;color:#021124">Reset</button>
+        </div>
+        <div style="margin-top:12px;width:100%"><h4 style="margin:6px 0">Laps</h4><ul id="laps" class="list"></ul></div>
+      </div>
+    </section>
+
+    <!-- SLIDER -->
+    <section id="slider" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Image Slider</h2><div class="muted">Auto & manual</div></div>
+        <div class="controls">
+          <button onclick="prevSlide()">❮</button>
+          <button onclick="nextSlide()">❯</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="slider" id="imgSlider">
+          <img id="slideImg" src="" alt="slider image" />
+          <button class="nav left" onclick="prevSlide()">◀</button>
+          <button class="nav right" onclick="nextSlide()">▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz" class="section hidden">
+      <div class="header">
+        <div><h2 style="margin:0">Quiz</h2><div class="muted">Test yourself</div></div>
+        <div class="controls"></div>
+      </div>
+
+      <div class="card">
+        <div id="quizArea"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button id="prevQ" style="background:#94a3b8">Prev</button>
+          <button id="nextQ">Next</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ==========================
+   Utility & State
+   ========================== */
+const state = {
+  todos: JSON.parse(localStorage.getItem('dash_todos')||'[]'),
+  note: localStorage.getItem('dash_note')||'',
+  expenses: JSON.parse(localStorage.getItem('dash_expenses')||'[]'),
+  weatherLast: localStorage.getItem('dash_weather_last')||'',
+  sliderIndex: 0,
+  sliderImgs: [
+    'https://picsum.photos/1000/600?random=21',
+    'https://picsum.photos/1000/600?random=22',
+    'https://picsum.photos/1000/600?random=23',
+    'https://picsum.photos/1000/600?random=24'
+  ],
+  stopwatch: { running:false, seconds:0, laps: [] },
+  quizIndex: 0,
+  quizAnswers: []
+};
+
+// helper: save relevant items
+function persist(){
+  localStorage.setItem('dash_todos', JSON.stringify(state.todos));
+  localStorage.setItem('dash_note', state.note);
+  localStorage.setItem('dash_expenses', JSON.stringify(state.expenses));
+  localStorage.setItem('dash_weather_last', state.weatherLast);
+}
+
+/* ==========================
+   NAVIGATION
+   ========================== */
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  const tab = t.dataset.tab;
+  t.classList.add('active');
+  document.getElementById(tab).classList.remove('hidden');
+  if(tab === 'home') updateSummary();
+}));
+
+function showTab(key){
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  const el = document.querySelector(`.tab[data-tab="${key}"]`);
+  if(el) el.classList.add('active');
+  document.getElementById(key).classList.remove('hidden');
+  if(key === 'home') updateSummary();
+}
+window.showTab = showTab;
+
+/* ==========================
+   HOME SUMMARY
+   ========================== */
+function updateSummary(){
+  document.getElementById('summaryTodos').textContent = state.todos.length;
+  document.getElementById('summaryNotes').textContent = state.note.length;
+  const totalExp = state.expenses.reduce((s,e)=>s+Number(e.amt||0),0);
+  document.getElementById('summaryExpenses').textContent = `₹${totalExp}`;
+  document.getElementById('summaryWeather').textContent = state.weatherLast || '—';
+}
+document.getElementById('dateNow').textContent = new Date().toLocaleString();
+
+/* ==========================
+   TO-DO App
+   ========================== */
+const todoListEl = document.getElementById('todoList');
+const todoInput = document.getElementById('todoInput');
+document.getElementById('addTodo').addEventListener('click', () => {
+  const t = todoInput.value.trim(); if(!t) return;
+  state.todos.push({text:t, done:false, id:Date.now()});
+  persist(); renderTodos(); todoInput.value='';
+});
+function renderTodos(filter='all'){
+  todoListEl.innerHTML = '';
+  const shown = state.todos.filter(td => {
+    if(filter==='all') return true;
+    return filter==='active' ? !td.done : td.done;
+  });
+  shown.forEach((td,i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
+        <input type="checkbox" ${td.done?'checked':''} data-id="${td.id}" />
+        <div style="min-width:0"><span style="font-weight:600">${td.text}</span></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button onclick="deleteTodo(${td.id})" style="background:transparent;border:1px solid rgba(255,255,255,0.03);">Delete</button>
+      </div>`;
+    todoListEl.appendChild(li);
+  });
+  document.getElementById('todoCount').textContent = state.todos.length;
+  document.getElementById('todoDone').textContent = state.todos.filter(t=>t.done).length;
+  // attach checkbox change
+  todoListEl.querySelectorAll('input[type=checkbox]').forEach(ch => {
+    ch.addEventListener('change', (ev) => {
+      const id = Number(ev.target.dataset.id);
+      const item = state.todos.find(x=>x.id===id);
+      if(item) item.done = ev.target.checked;
+      persist(); renderTodos(filter);
+    });
+  });
+}
+function deleteTodo(id){
+  state.todos = state.todos.filter(t=>t.id!==id);
+  persist(); renderTodos();
+}
+function filterTodos(filter){ renderTodos(filter); }
+renderTodos();
+
+/* ==========================
+   NOTES
+   ========================== */
+const noteArea = document.getElementById('noteArea');
+noteArea.value = state.note || '';
+document.getElementById('noteChars').textContent = noteArea.value.length;
+noteArea.addEventListener('input', () => {
+  state.note = noteArea.value;
+  document.getElementById('noteChars').textContent = state.note.length;
+  persist();
+});
+document.getElementById('clearNote').addEventListener('click', ()=> {
+  state.note = ''; noteArea.value=''; document.getElementById('noteChars').textContent='0'; persist();
+});
+
+/* ==========================
+   WEATHER (Open-Meteo)
+   ========================== */
+const weatherOut = document.getElementById('weatherOut');
+const weatherDetails = document.getElementById('weatherDetails');
+document.getElementById('getWeather').addEventListener('click', async () => {
+  const city = document.getElementById('cityInput').value.trim();
+  if(!city) return;
+  weatherOut.textContent = 'Searching...';
+  try{
+    // geocoding
+    const gres = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+    const gdata = await gres.json();
+    if(!gdata.results || !gdata.results.length){ weatherOut.textContent='City not found'; return; }
+    const {name,latitude,longitude,country} = gdata.results[0];
+    const wres = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+    const wdata = await wres.json();
+    const cw = wdata.current_weather;
+    weatherOut.innerHTML = `<div style="font-weight:700">${name}, ${country}</div>
+      <div style="font-size:24px;margin-top:6px">${cw.temperature}°C • ${cw.windspeed} km/h</div>`;
+    weatherDetails.innerHTML = `<div class="small">Weather code: ${cw.weathercode}</div>`;
+    state.weatherLast = `${name} ${cw.temperature}°C`; persist(); updateSummary();
+  }catch(e){
+    weatherOut.textContent = 'Weather fetch failed';
+  }
+});
+
+/* ==========================
+   CURRENCY CONVERTER (exchangerate.host)
+   ========================== */
+document.getElementById('convertBtn').addEventListener('click', async () => {
+  const amount = Number(document.getElementById('amount').value);
+  const from = document.getElementById('fromCur').value;
+  const to = document.getElementById('toCur').value;
+  if(!amount) return;
+  document.getElementById('convOut').textContent = 'Converting...';
+  try{
+    const r = await fetch(`https://api.exchangerate.host/convert?from=${from}&to=${to}&amount=${amount}`);
+    const d = await r.json();
+    if(d.result==null) throw new Error('No rate');
+    document.getElementById('convOut').textContent = `${amount} ${from} = ${d.result.toFixed(2)} ${to} (rate: ${d.info.rate.toFixed(4)})`;
+  }catch(e){
+    document.getElementById('convOut').textContent = 'Conversion failed';
+  }
+});
+
+/* ==========================
+   MOVIES (OMDb) — replace key if you have one
+   ========================== */
+const OMDB_API_KEY = '564727fa'; // example key; replace with your own for heavy use
+document.getElementById('searchMovie').addEventListener('click', async () => {
+  const q = document.getElementById('movieInput').value.trim();
+  if(!q) return;
+  const out = document.getElementById('movieOut');
+  out.textContent = 'Searching...';
+  try{
+    const r = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(q)}&apikey=${OMDB_API_KEY}`);
+    const d = await r.json();
+    if(d.Response === 'False'){ out.textContent = 'Movie not found'; return; }
+    out.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <img src="${d.Poster!=='N/A'?d.Poster:'https://via.placeholder.com/120x170?text=No+Poster'}" alt="poster" style="width:120px;border-radius:8px">
+        <div>
+          <div style="font-weight:700;font-size:18px">${d.Title} (${d.Year})</div>
+          <div class="muted" style="margin-top:6px">${d.Genre} • IMDB: ${d.imdbRating}</div>
+          <p style="margin-top:8px" class="small">${d.Plot}</p>
+        </div>
+      </div>`;
+  }catch(e){
+    out.textContent = 'Movie lookup failed';
+  }
+});
+
+/* ==========================
+   EXPENSE TRACKER
+   ========================== */
+const expListEl = document.getElementById('expList');
+function renderExpenses(){
+  expListEl.innerHTML = '';
+  let total=0;
+  state.expenses.forEach((e, i) => {
+    total += Number(e.amt||0);
+    const li = document.createElement('li');
+    li.innerHTML = `<div>${e.name}</div><div>₹${Number(e.amt).toFixed(2)} <button onclick="removeExp(${i})" style="background:transparent;border:1px solid rgba(255,255,255,0.04)">✖</button></div>`;
+    expListEl.appendChild(li);
+  });
+  document.getElementById('expTotal').textContent = `₹${total.toFixed(2)}`;
+  persist(); updateSummary();
+}
+document.getElementById('addExp').addEventListener('click', () => {
+  const name = document.getElementById('expName').value.trim();
+  const amt = Number(document.getElementById('expAmt').value);
+  if(!name || !amt) return;
+  state.expenses.push({name,amt});
+  document.getElementById('expName').value=''; document.getElementById('expAmt').value='';
+  renderExpenses();
+});
+window.removeExp = function(i){
+  state.expenses.splice(i,1);
+  renderExpenses();
+};
+renderExpenses();
+
+/* ==========================
+   STOPWATCH / TIMER
+   ========================== */
+let stopwatchInterval = null;
+function formatTime(sec){
+  const h = String(Math.floor(sec/3600)).padStart(2,'0');
+  const m = String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  const s = String(sec%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+document.getElementById('clock').textContent = formatTime(state.stopwatch.seconds);
+document.getElementById('startClock').addEventListener('click', () => {
+  if(state.stopwatch.running) return;
+  state.stopwatch.running = true;
+  stopwatchInterval = setInterval(() => {
+    state.stopwatch.seconds++;
+    document.getElementById('clock').textContent = formatTime(state.stopwatch.seconds);
+  }, 1000);
+});
+document.getElementById('stopClock').addEventListener('click', () => {
+  state.stopwatch.running = false;
+  clearInterval(stopwatchInterval);
+  // record lap
+  state.stopwatch.laps.unshift(formatTime(state.stopwatch.seconds));
+  renderLaps();
+});
+document.getElementById('resetClock').addEventListener('click', () => {
+  state.stopwatch.running = false;
+  clearInterval(stopwatchInterval);
+  state.stopwatch.seconds = 0; state.stopwatch.laps = [];
+  document.getElementById('clock').textContent = formatTime(0);
+  renderLaps();
+});
+function renderLaps(){
+  const ul = document.getElementById('laps'); ul.innerHTML='';
+  state.stopwatch.laps.forEach(l => { const li = document.createElement('li'); li.textContent = l; ul.appendChild(li); });
+}
+renderLaps();
+
+/* ==========================
+   IMAGE SLIDER
+   ========================== */
+const slideImg = document.getElementById('slideImg');
+function setSlide(i){
+  state.sliderIndex = (i + state.sliderImgs.length) % state.sliderImgs.length;
+  slideImg.style.opacity = 0;
+  setTimeout(()=>{ slideImg.src = state.sliderImgs[state.sliderIndex]; slideImg.style.opacity = 1; }, 180);
+}
+function nextSlide(){ setSlide(state.sliderIndex+1); }
+function prevSlide(){ setSlide(state.sliderIndex-1); }
+window.nextSlide = nextSlide; window.prevSlide = prevSlide;
+setSlide(0);
+setInterval(()=>{ nextSlide(); }, 3500);
+
+/* ==========================
+   QUIZ
+   ========================== */
+const quiz = [
+  {q:'What does DOM stand for?', opts:['Document Object Model','Data Object Map','Digital Object Model','Direct Object Method'], a:0},
+  {q:'Which method converts JSON to object?', opts:['JSON.parse','JSON.stringify','JSON.decode','JSON.toObject'], a:0},
+  {q:'Which keyword defines a constant?', opts:['let','var','const','define'], a:2}
+];
+function renderQuiz(){
+  const area = document.getElementById('quizArea');
+  const index = state.quizIndex;
+  const Q = quiz[index];
+  let html = `<div><strong>Q ${index+1} / ${quiz.length}</strong></div><div style="margin-top:8px">${Q.q}</div><div style="margin-top:12px">`;
+  Q.opts.forEach((opt,i) => {
+    const selected = state.quizAnswers[index]===i ? 'selected' : '';
+    html += `<div class="option ${selected}" data-i="${i}">${opt}</div>`;
+  });
+  html += `</div><div style="margin-top:10px" class="small">Selected: ${state.quizAnswers[index] ?? 'None'}</div>`;
+  area.innerHTML = html;
+  area.querySelectorAll('.option').forEach(el => el.addEventListener('click', (e) => {
+    const i = Number(el.dataset.i);
+    state.quizAnswers[index] = i; renderQuiz();
+  }));
+}
+document.getElementById('prevQ').addEventListener('click', ()=> {
+  state.quizIndex = Math.max(0, state.quizIndex-1); renderQuiz();
+});
+document.getElementById('nextQ').addEventListener('click', ()=> {
+  if(state.quizIndex < quiz.length -1){ state.quizIndex++; renderQuiz(); }
+  else { // finish
+    let score = state.quizAnswers.reduce((s,ans,i)=> s + ((ans===quiz[i].a)?1:0), 0);
+    document.getElementById('quizArea').innerHTML = `<div style="font-weight:700">Completed — Score: ${score} / ${quiz.length}</div>`;
+  }
+});
+renderQuiz();
+
+/* ==========================
+   EXPORT / CLEAR
+   ========================== */
+document.getElementById('clearAll').addEventListener('click', () => {
+  if(!confirm('Clear all stored dashboard data?')) return;
+  localStorage.removeItem('dash_todos'); localStorage.removeItem('dash_note'); localStorage.removeItem('dash_expenses');
+  state.todos=[]; state.note=''; state.expenses=[]; renderTodos(); renderExpenses(); noteArea.value=''; updateSummary();
+});
+document.getElementById('exportData').addEventListener('click', () => {
+  const payload = {
+    todos: state.todos, note: state.note, expenses: state.expenses, weatherLast: state.weatherLast
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='dashboard-data.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+/* ==========================
+   INIT
+   ========================== */
+updateSummary();
+
+// small accessibility: show home at first
+showTab('home');
+
+</script>
+</body>
+</html>
